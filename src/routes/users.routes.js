@@ -11,6 +11,8 @@ router.post('/logout',userController.logoutUser)
 router.patch('/address',authMiddleware.authUser,userController.updateAddress)
 router.patch('/password',authMiddleware.authUser,userController.updatePassword)
 
+router.get('/',authMiddleware.authUser,userController.getProducts)
+
 
 
 

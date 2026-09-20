@@ -1,4 +1,5 @@
 const userModel = require('../models/users.models')
+const productModel = require('../models/products.model')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
@@ -149,4 +150,21 @@ async function updatePassword(req,res){
 
 }
 
-module.exports = { registerUser, loginUser ,logoutUser,updateAddress, updatePassword}
+async function getProducts(req,res){
+
+    const allProducts = await productModel.find();
+    if(!allProducts){
+        return res.status(404).json({
+            message:"No products is found"
+        })
+    }
+
+    return res.status(200).json({
+        message:"All Products is here",
+        allProducts
+    })
+
+
+}
+
+module.exports = { registerUser, loginUser ,logoutUser,updateAddress, updatePassword,getProducts}

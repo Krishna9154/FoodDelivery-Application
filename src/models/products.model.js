@@ -2,6 +2,13 @@ const mongoose = require('mongoose')
 
 
 const productsSchema = mongoose.Schema({
+
+    restorent:{
+        type:mongoose.Schema.Types.ObjectId,
+        ref:"user",
+        require:true
+    },
+
     name: {
         type: String,
         required: true

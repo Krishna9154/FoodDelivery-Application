@@ -8,6 +8,10 @@ router.post('/products',authRestoMiddleware.authRestorent,restorentController.cr
 router.patch('/products/:id',authRestoMiddleware.authRestorent,restorentController.updateproduct)
 router.delete('/products/:id',authRestoMiddleware.authRestorent,restorentController.deleteproduct)
 
+router.get('/products',authRestoMiddleware.authRestorent,restorentController.getproduct)
+
+
+
 
 
 
