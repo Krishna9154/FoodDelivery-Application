@@ -1,7 +1,7 @@
 const mongoose = require('mongoose')
 
 
-const ordersSchema = mongoose.Schema({
+const cartSchema = mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "user",
@@ -9,12 +9,15 @@ const ordersSchema = mongoose.Schema({
     },
 
     products: [
+        
         {
+            _id:false,
             product: {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "Product"
+                ref: "products",
+                
             },
-            quantity: Number
+            quantity: Number,
         }
     ],
 
@@ -29,6 +32,6 @@ const ordersSchema = mongoose.Schema({
 })
 
 
-const ordersModel = mongoose.model('orders', ordersSchema)
+const cartsModel = mongoose.model('cartCollection', cartSchema)
 
-module.exports = ordersModel
+module.exports = cartsModel

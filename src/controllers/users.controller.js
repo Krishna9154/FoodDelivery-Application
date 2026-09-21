@@ -1,29 +1,30 @@
 const userModel = require('../models/users.models')
 const productModel = require('../models/products.model')
+const cartModel = require('../models/cart.model')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 
 
 async function registerUser(req, res) {
 
-    const { fullname, email, username,phonenumber, password, address, role = "user" } = req.body
+    const { fullname, email, username, phonenumber, password, address, role = "user" } = req.body
 
-        const isAlreadyExist =await userModel.findOne({
-            $or: [
-                { email },
-                { username }
-            ]
+    const isAlreadyExist = await userModel.findOne({
+        $or: [
+            { email },
+            { username }
+        ]
+    })
+
+    if (isAlreadyExist) {
+        return res.status(409).json({
+            message: "User is already exist"
         })
+    }
 
-        if (isAlreadyExist) {
-            return res.status(409).json({
-                message: "User is already exist"
-            })
-        }
+    const hash = await bcrypt.hash(password, 10)
 
-        const hash = await bcrypt.hash(password, 10)
-
-        try {
+    try {
 
         const user = await userModel.create({
             fullname: {
@@ -46,8 +47,8 @@ async function registerUser(req, res) {
             user: {
                 fullname: user.fullname,
                 username: user.username,
-                phonenumber:user.phonenumber,
-                address:user.address,
+                phonenumber: user.phonenumber,
+                address: user.address,
                 email: user.email,
                 role: user.role
             }
@@ -79,10 +80,10 @@ async function loginUser(req, res) {
     try {
         const isMatch = await bcrypt.compare(password, user.password)
 
-        if(!isMatch){
+        if (!isMatch) {
             return res.status(409).json({
-            message: "invalid credencial "
-        })
+                message: "invalid credencial "
+            })
         }
 
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET)
@@ -94,8 +95,8 @@ async function loginUser(req, res) {
                 fullname: user.fullname,
                 username: user.username,
                 email: user.email,
-                phonenumber:user.phonenumber,
-                address:user.address,
+                phonenumber: user.phonenumber,
+                address: user.address,
                 role: user.role
             }
         })
@@ -106,65 +107,138 @@ async function loginUser(req, res) {
     }
 }
 
-async function logoutUser(req,res){
+async function logoutUser(req, res) {
     res.clearCookie('token')
     res.status(200).json({
-        message:"loggedout successfully"
+        message: "loggedout successfully"
     })
 }
 
-async function updateAddress(req,res){
+async function updateAddress(req, res) {
 
-    const {address}=req.body
-    
-    const user = await userModel.findOneAndUpdate({_id:req.user.id},{address:address},{ returnDocument: "after" })
+    const { address } = req.body
 
-    if(!user){
+    const user = await userModel.findOneAndUpdate({ _id: req.user.id }, { address: address }, { returnDocument: "after" })
+
+    if (!user) {
         return res.status(400).json({
-            message:"User not found"
+            message: "User not found"
         })
     }
 
     return res.status(200).json({
-        message:"User Updated successfully",
+        message: "User Updated successfully",
         user
     })
 }
 
-async function updatePassword(req,res){
+async function updatePassword(req, res) {
 
-    const {password} = req.body
-    const hash = await bcrypt.hash(password,10)
-    const user = await userModel.findOneAndUpdate({_id:req.user.id},{password:hash},{returnDocument:'after'})
+    const { password } = req.body
+    const hash = await bcrypt.hash(password, 10)
+    const user = await userModel.findOneAndUpdate({ _id: req.user.id }, { password: hash }, { returnDocument: 'after' })
 
-    if(!user){
+    if (!user) {
         return res.status(404).json({
-            message:"User not found"
+            message: "User not found"
         })
     }
 
     return res.status(200).json({
-        message:"Password is Updated successfully",
+        message: "Password is Updated successfully",
         user
     })
 
 }
 
-async function getProducts(req,res){
+async function getProducts(req, res) {
 
     const allProducts = await productModel.find();
-    if(!allProducts){
+    if (!allProducts) {
         return res.status(404).json({
-            message:"No products is found"
+            message: "No products is found"
         })
     }
 
     return res.status(200).json({
-        message:"All Products is here",
+        message: "All Products is here",
         allProducts
     })
 
 
 }
 
-module.exports = { registerUser, loginUser ,logoutUser,updateAddress, updatePassword,getProducts}
+async function addToCartCollection(req, res) {
+
+    const productId = req.params.id;
+    const { quantity, status } = req.body
+
+
+    const cart = await cartModel.findOne({user:req.user.id})
+
+    if (!cart) {
+        //cart creat ka code 
+        const addToCArt = await cartModel.create({
+
+            user: req.user.id,
+            products: [
+                {
+                    product: productId,
+                    quantity: quantity,
+                },
+            ],
+            totalAmount: 2,
+            status: status
+        })
+
+        return res.status(201).json({
+            message: "all cart product is here",
+            addToCArt
+        })
+    }
+
+    const existingProduct = cart.products.find(
+        item => item.product.toString() === productId
+    )
+    if (existingProduct) {
+        return res.status(200).json({
+            message: "Product is already exist"
+        })
+    }
+
+    cart.products.push({
+        product: productId,
+        quantity: quantity,
+    })
+
+    await cart.save()
+
+    return res.status(200).json({
+        message: "Product is added successfully",
+        cart
+    })
+}
+
+async function cartCollection(req, res) {
+
+    const allProducts = await cartModel
+        .findOne({ user: req.user.id })
+        .populate('products.product', 'name description price')
+
+
+    if (!allProducts) {
+        return res.status(404).json({
+            message: "Products not found"
+        })
+    }
+
+    return res.status(200).json({
+        message: "All Product is here",
+        allProducts
+    })
+}
+
+
+
+
+module.exports = { registerUser, loginUser, logoutUser, updateAddress, updatePassword, getProducts, addToCartCollection, cartCollection }
