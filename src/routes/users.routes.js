@@ -16,6 +16,7 @@ router.get('/',authMiddleware.authUser,userController.getProducts)
 
 
 router.post('/cart/:id',authUserMiddleware.authUser,userController.addToCartCollection)
+router.get('/cart/:id',authUserMiddleware.authUser,userController.removeToCartCollection)
 
 router.get('/cart',authUserMiddleware.authUser,userController.cartCollection)
 

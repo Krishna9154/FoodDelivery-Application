@@ -3,6 +3,7 @@ const productModel = require('../models/products.model')
 const cartModel = require('../models/cart.model')
 const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
+const { populate } = require('dotenv')
 
 
 async function registerUser(req, res) {
@@ -174,7 +175,9 @@ async function addToCartCollection(req, res) {
     const { quantity, status } = req.body
 
 
-    const cart = await cartModel.findOne({user:req.user.id})
+    const cart = await cartModel.findOne({ user: req.user.id })
+
+    console.log(cart)
 
     if (!cart) {
         //cart creat ka code 
@@ -187,7 +190,7 @@ async function addToCartCollection(req, res) {
                     quantity: quantity,
                 },
             ],
-            totalAmount: 2,
+            totalAmount: 0, // when we create a user and user can add something tere is an issu
             status: status
         })
 
@@ -213,9 +216,61 @@ async function addToCartCollection(req, res) {
 
     await cart.save()
 
+
+    const populateCart = await cart.populate('products.product')
+  
+    const totalAmount = populateCart.products.reduce((sum,value)=>{
+        return sum + value.product.price
+    },0)
+
+    cart.totalAmount = totalAmount
+
+    await cart.save()
+
+
     return res.status(200).json({
         message: "Product is added successfully",
         cart
+    })
+}
+
+async function removeToCartCollection(req, res) {
+
+    const productId = req.params.id
+    const userCart = await cartModel.findOne({ user: req.user.id })
+
+    if (!userCart) {
+        return res.status(404).json({
+            message: "Cart not found"
+        });
+    }
+
+    const products = userCart.products.filter((element) => {
+        return element.product._id.toString() !== productId
+    })
+
+    if (products.length === userCart.products.length) {
+        return res.status(404).json({
+            message: "Product not found in cart"
+        });
+    }
+
+    userCart.products = products  // replace the products db array into new filter product array 
+
+    await userCart.save()
+
+
+    const popu = await userCart.populate('products.product')
+    const totalAmount = popu.products.reduce((sum,value)=>{
+        return sum + value.product.price
+    },0)
+
+   userCart.totalAmount = totalAmount
+   await userCart.save()
+
+    return res.status(200).json({
+        message: "Product is deleted successfully",
+        userCart
     })
 }
 
@@ -241,4 +296,4 @@ async function cartCollection(req, res) {
 
 
 
-module.exports = { registerUser, loginUser, logoutUser, updateAddress, updatePassword, getProducts, addToCartCollection, cartCollection }
+module.exports = { registerUser, loginUser, logoutUser, updateAddress, updatePassword, getProducts, addToCartCollection, cartCollection, removeToCartCollection }
